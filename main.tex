@@ -1,0 +1,252 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amssymb, geometry}
+\geometry{margin=1in}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinelanguage{MATLAB}{
+  keywords={break, case, catch, continue, else, elseif, end, for, function, global,
+    if, otherwise, persistent, return, switch, try, while},
+  keywordstyle=\color{blue}\bfseries,
+  comment=[%]{\%},
+  commentstyle=\color{green!50!black}\itshape,
+  stringstyle=\color{orange},
+  morestring=[b]',
+  morestring=[b]",
+  sensitive=true
+}
+
+\lstdefinestyle{matlabstyle}{
+  language=MATLAB,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=5pt,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  rulecolor=\color{black},
+  columns=flexible,
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+
+
+
+\title{Discretization and Matrix Formulation of the 1D Pennes Bioheat Equation in Spherical Coordinates}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{1. Governing Equation: Pennes' Bioheat Equation}
+
+\begin{equation}
+\rho c \frac{\partial T(r,t)}{\partial t} = \frac{1}{r^2} \frac{\partial}{\partial r} \left( k r^2 \frac{\partial T}{\partial r} \right) + \rho_b c_b \omega_b (T_b - T) + Q_{\text{met}} + Q_{\text{ext}}(T)
+\end{equation}
+
+\noindent where:
+\begin{itemize}
+    \item \( \rho, c \): tissue density and specific heat
+    \item \( k \): thermal conductivity
+    \item \( \rho_b, c_b, \omega_b \): blood density, specific heat, and perfusion rate
+    \item \( T_b \): arterial blood temperature
+    \item \( Q_{\text{met}} \): metabolic heat generation
+    \item \( Q_{\text{ext}}(T) \): temperature-dependent external heat source
+\end{itemize}
+
+\textbf{Expanding the radial derivative:}
+
+\begin{equation}
+\rho c \frac{\partial T}{\partial t} = 
+k \left( \frac{\partial^2 T}{\partial r^2} + \frac{2}{r} \frac{\partial T}{\partial r} \right)
++ \rho_b c_b \omega_b (T_b - T)
++ Q_{\text{met}} + Q_{\text{ext}}(T)
+\end{equation}
+
+\section*{2. Initial and Boundary Conditions}
+
+\begin{itemize}
+    \item \textbf{Initial condition:} \( T(r, 0) = T_0 \)
+    \item \textbf{Symmetry boundary at \( r = 0 \):} \( \left. \frac{\partial T}{\partial r} \right|_{r=0} = 0 \)
+    \item \textbf{Convective boundary at \( r = R \):} 
+    \[
+    -k \left. \frac{\partial T}{\partial r} \right|_{r=R} = h (T(R,t) - T_\infty)
+    \]
+\end{itemize}
+
+\section*{3. Discretization: Implicit Method}
+
+Let \( r_i = (i - 1)\Delta r \) for \( i = 1, 2, \dots, N \) where \( r_1 = 0 \), \( r_N = R \), and \( t^n = n\Delta t \). Define:
+\[
+T_i^n \approx T(r_i, t^n), \quad 
+\theta = \frac{\rho c}{\Delta t}, \quad 
+\beta = \frac{k}{\Delta r^2}, \quad 
+\lambda = \rho_b c_b \omega_b, \quad 
+\gamma_i = \frac{k}{r_i \Delta r}
+\]
+
+\subsection*{Node \( i = 1 \) (Symmetry Boundary)}
+
+Using a ghost point: \( T_0 = T_2 \), the second derivative becomes:
+\[
+\left. \frac{\partial^2 T}{\partial r^2} \right|_{i=1} \approx \frac{2(T_2 - T_1)}{\Delta r^2} = 2\beta (T_2 - T_1)
+\]
+The discretized equation:
+\[
+\theta (T_1^{n+1} - T_1^n) = 2\beta (T_2^{n+1} - T_1^{n+1}) + \lambda (T_b - T_1^{n+1}) + Q_{\text{met}} + Q_{\text{ext}}(T_1^n)
+\]
+
+\subsection*{Nodes \( i = 2, \dots, N-1 \) (Interior)}
+
+\begin{align*}
+\theta (T_i^{n+1} - T_i^n) &= 
+\beta (T_{i+1}^{n+1} - 2T_i^{n+1} + T_{i-1}^{n+1}) 
++ \gamma_i (T_{i+1}^{n+1} - T_{i-1}^{n+1}) \\
+&\quad + \lambda (T_b - T_i^{n+1}) + Q_{\text{met}} + Q_{\text{ext}}(T_i^n)
+\end{align*}
+
+\subsection*{Node \( i = N \) (Convective Boundary)}
+
+Using backward difference:
+\[
+-k \cdot \frac{T_N^{n+1} - T_{N-1}^{n+1}}{\Delta r} = h (T_N^{n+1} - T_\infty)
+\Rightarrow (k + h \Delta r) T_N^{n+1} - k T_{N-1}^{n+1} = h \Delta r T_\infty
+\]
+
+\section*{4. Matrix Form}
+
+We solve the linear system:
+\[
+\mathbf{A} \, \mathbf{T}^{n+1} = \mathbf{b}^n
+\]
+
+\subsection*{Temperature Vector}
+
+\[
+\mathbf{T}^{n+1} =
+\begin{bmatrix}
+T_1^{n+1} \\
+T_2^{n+1} \\
+\vdots \\
+T_{N}^{n+1}
+\end{bmatrix}
+\]
+
+\subsection*{Right-Hand Side Vector}
+
+\[
+b_i^n =
+\begin{cases}
+\theta T_1^n + \lambda T_b + Q_{\text{met}} + Q_{\text{ext}}(T_1^n), & i = 1 \\
+\theta T_i^n + \lambda T_b + Q_{\text{met}} + Q_{\text{ext}}(T_i^n), & 2 \leq i \leq N-1 \\
+h \Delta r T_\infty, & i = N
+\end{cases}
+\]
+
+\subsection*{Coefficient Matrix \( \mathbf{A} \in \mathbb{R}^{N \times N} \)}
+
+\[
+\mathbf{A} =
+\begin{bmatrix}
+b_1 & c_1 & 0 & \cdots & 0 \\
+a_2 & b_2 & c_2 & \cdots & 0 \\
+0 & a_3 & b_3 & \ddots & 0 \\
+\vdots & \ddots & \ddots & \ddots & c_{N-1} \\
+0 & \cdots & 0 & a_N & b_N
+\end{bmatrix}
+\]
+
+\subsection*{Matrix Coefficients}
+
+\begin{itemize}
+    \item For \( i = 1 \): 
+    \[
+    b_1 = \theta + 2\beta + \lambda, \quad c_1 = -2\beta
+    \]
+    \item For \( 2 \leq i \leq N-1 \): 
+    \[
+    a_i = -(\beta - \gamma_i), \quad
+    b_i = \theta + 2\beta + \lambda, \quad
+    c_i = -(\beta + \gamma_i)
+    \]
+    \item For \( i = N \): 
+    \[
+    a_N = -k, \quad b_N = k + h \Delta r
+    \]
+\end{itemize}
+
+\section*{5. Final Linear System}
+
+\[
+\mathbf{A} \mathbf{T}^{n+1} =
+\begin{bmatrix}
+\theta T_1^n + \lambda T_b + Q_{\text{met}} + Q_{\text{ext}}(T_1^n) \\
+\theta T_2^n + \lambda T_b + Q_{\text{met}} + Q_{\text{ext}}(T_2^n) \\
+\vdots \\
+h \Delta r T_\infty
+\end{bmatrix}
+\]
+
+Solve the linear system of equations:
+
+\[
+\mathbf{A} \mathbf{T} = \mathbf{b}
+\]
+
+where \( \mathbf{A} \in \mathbb{R}^{n \times n} \), \( \mathbf{b} \in \mathbb{R}^n \), and \( \mathbf{T} \in \mathbb{R}^n \) is the temperature vector.
+
+\section*{6. Richardson Iteration Method}
+
+\textbf{Iteration Formula}
+
+\[
+\mathbf{T}^{(n+1)} = \mathbf{T}^{(n)} + \omega \left( \mathbf{b} - \mathbf{A} \mathbf{T}^{(n)} \right)
+\]
+
+where:
+\begin{itemize}
+    \item \( \mathbf{T}^{(n)} \) is the approximation at iteration step \( n \)
+    \item \( \omega > 0 \) is the relaxation parameter
+    \item \( \mathbf{r}^{(n)} = \mathbf{b} - \mathbf{A} \mathbf{T}^{(n)} \) is the residual
+\end{itemize}
+
+\section*{Convergence Condition}
+
+The Richardson iteration converges if the relaxation parameter \( \omega \) satisfies:
+
+\[
+0 < \omega < \frac{2}{\rho(\mathbf{A})}
+\]
+
+where \( \rho(\mathbf{A}) \) is the spectral radius of \( \mathbf{A} \), i.e., the largest absolute value among its eigenvalues.
+
+\section*{Algorithm}
+
+\subsection*{Inputs}
+\begin{itemize}
+    \item \( \mathbf{A} \in \mathbb{R}^{n \times n} \): coefficient matrix
+    \item \( \mathbf{b} \in \mathbb{R}^{n} \): right-hand side vector
+    \item \( \mathbf{T}^{(0)} \in \mathbb{R}^{n} \): initial guess
+    \item \( \omega > 0 \): relaxation parameter
+    \item \( \varepsilon > 0 \): convergence tolerance
+\end{itemize}
+
+\subsection*{Procedure}
+\begin{enumerate}
+    \item Initialize \( n = 0 \), \( \mathbf{T}^{(0)} \)
+    \item Compute residual \( \mathbf{r}^{(0)} = \mathbf{b} - \mathbf{A} \mathbf{T}^{(0)} \)
+    \item While \( \| \mathbf{r}^{(n)} \| \geq \varepsilon \), repeat:
+    \begin{align*}
+        \mathbf{T}^{(n+1)} &= \mathbf{T}^{(n)} + \omega \mathbf{r}^{(n)} \\
+        \mathbf{r}^{(n+1)} &= \mathbf{b} - \mathbf{A} \mathbf{T}^{(n+1)} \\
+        n &\leftarrow n + 1
+    \end{align*}
+    \item Return \( \mathbf{T}^{(n+1)} \) as the solution
+\end{enumerate}
+
+
+
+\end{document}
