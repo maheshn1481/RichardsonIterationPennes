@@ -68,7 +68,7 @@ scale_A = max(abs(diag(A)));
 A_scaled = A / scale_A;
 
 % Richardson parameters
-tol = 1e-12;
+tol = 1e-10;
 max_iter = 5000;
 omega = 0.9*(1 / max(diag(A_scaled)));  % safe choice after scaling
 
