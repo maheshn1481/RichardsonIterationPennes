@@ -15,7 +15,7 @@ Nt = length(time);
 % Tissue properties
 rho = 1050; c = 3500; k = 0.5; w_b = 0.00088;
 rho_b = 1050; c_b = 3617; T_b = 37;
-Q_met = 5790; Q_ext = 1e5;
+Q_met = 5790; Q_ext = 5e5;
 
 % Boundary and initial conditions
 T_0 = 37; T_inf = 23; h = 10;
@@ -70,7 +70,7 @@ A_scaled = A / scale_A;
 % Richardson parameters
 tol = 1e-10;
 max_iter = 5000;
-omega = 0.9*(1 / max(diag(A_scaled)));  % safe choice after scaling
+omega = 0.1*(1 / max(diag(A_scaled)));  % safe choice after scaling
 
 %% === Time-Stepping Loop with Richardson Iteration ===
 TR = zeros(N, Nt);
@@ -87,6 +87,7 @@ for n = 1:Nt-1
     b_scaled = b / scale_A;
 
     % Initial guess
+    % T0 = T(:,n)+1*rand(length(T(:,n)),1);
     T0 = TR(:,n);
 
     % Richardson Iteration
@@ -135,8 +136,9 @@ function [x, iter] = richardson_solver(A, b, x0, omega, tol)
         x_new = x + omega * r;
         x = x_new;
         iter = iter+1;
-        if iter > 1e6
-            disp('Richardson method did not converge within 1e6 iterations.');
+        if iter > 1e5
+            disp('Richardson method did not converge within 1e5 iterations.');
+            disp(num2str(norm(r, inf)))
             break;
         end
     end
