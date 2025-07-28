@@ -248,5 +248,38 @@ where \( \rho(\mathbf{A}) \) is the spectral radius of \( \mathbf{A} \), i.e., t
 \end{enumerate}
 
 
+\subsection*{Preconditioned Richardson }
 
+\[
+        \mathbf{T}^{(n+1)} = \mathbf{T}^{(n)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(n)}\right) \\
+\]
+
+\subsection*{Unrolled Richardson }
+Consider the function $f$ as a NN that approximates the solution $T$ using 10 iterations of Richardson.
+\[
+    f(M,A,b) \approx T
+\]
+The unrolled algorithm gives the basis for the NN architecture.
+\[\begin{split}
+                 & \mathbf{T}^{(1)} = \mathbf{T}^{(0)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(0)}\right) \\
+                 & \mathbf{T}^{(2)} = \mathbf{T}^{(1)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(1)}\right) \\
+                 & \mathbf{T}^{(3)} = \mathbf{T}^{(2)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(2)}\right) \\
+                 & \mathbf{T}^{(4)} = \mathbf{T}^{(3)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(3)}\right) \\
+                 & \mathbf{T}^{(5)} = \mathbf{T}^{(4)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(4)}\right) \\
+                 & \mathbf{T}^{(6)} = \mathbf{T}^{(5)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(5)}\right) \\
+                 & \mathbf{T}^{(7)} = \mathbf{T}^{(6)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(6)}\right) \\
+                 & \mathbf{T}^{(8)} = \mathbf{T}^{(7)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(7)}\right) \\
+    f(M,A,b)  =  & \mathbf{T}^{(9)} = \mathbf{T}^{(8)} + \omega M^{-1} \left(  \mathbf{b} - \mathbf{A} \mathbf{T}^{(8)}\right) \\
+\end{split}
+\]
+NN training is the same as a PDE constrained optimization problem.
+For one training data set pair where
+\[
+A T^* = b
+\]
+We wish to solve a PDE constrained optimization to recover the preconditioner M.
+Given: $A$, $T^*$, $b$, Find $M$ such that
+\[
+ \min_M \| f(M,A,b) - T^*\|_2
+\]
 \end{document}
